@@ -14,21 +14,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Java
+      - name: Set up Java 8
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
-          java-version: '8'  # Required by java-goof
+          distribution: temurin
+          java-version: 8
 
       - name: Build Maven project (skip tests)
-        run: mvn install -DskipTests
+        run: mvn clean install -DskipTests
 
       - name: Install Snyk CLI
         uses: snyk/actions/setup@master
 
-      - name: Run Snyk OSS scan (all modules)
-        run: |
-          snyk test --json | tee snyk-oss-results.json
+      - name: Run Snyk OSS scan (all Maven modules)
+        run: snyk test --all-projects --detection-depth=4 --json | tee snyk-oss-results.json
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -44,17 +43,11 @@ jobs:
           const branch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || 'main';
 
           const ecosystemUrls = {
-            pip: name => `https://pypi.org/project/${name}/`,
-            npm: name => `https://www.npmjs.com/package/${name}`,
             maven: name => `https://search.maven.org/search?q=${name}`,
-            rubygems: name => `https://rubygems.org/gems/${name}`,
           };
 
           const advisorUrls = {
-            pip: (name, version) => `https://security.snyk.io/package/pip/${name}/${version}`,
-            npm: (name, version) => `https://security.snyk.io/package/npm/${name}/${version}`,
             maven: (name, version) => `https://security.snyk.io/package/maven/${name}/${version}`,
-            rubygems: () => '',
           };
 
           const projects = Array.isArray(data) ? data : [data];
@@ -107,6 +100,7 @@ jobs:
             output += `🔴 ${criticalCount} critical vulnerability occurrences across ${criticalPackages.size} unique packages\n`;
             output += `🟠 ${highCount} high vulnerability occurrences across ${highPackages.size} unique packages\n`;
             output += `**${totalUniquePackages} total affected packages (${totalOccurrences} total issues)**\n\n`;
+
             output += `| Severity | Package | Dependency Type | CVSS | Occurrences | Title | Fix Available | Advisor |\n`;
             output += `|----------|---------|------------------|------|-------------|-------|---------------|---------|\n`;
 
