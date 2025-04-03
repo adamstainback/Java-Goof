@@ -1,4 +1,4 @@
-name: (Generic) Snyk OSS Summary with PR Comment
+name: (Maven Multi-Module) Snyk OSS Summary with PR Comment
 
 on:
   pull_request:
@@ -14,12 +14,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '8'  # Required by java-goof
+
+      - name: Build Maven project (skip tests)
+        run: mvn install -DskipTests
+
       - name: Install Snyk CLI
         uses: snyk/actions/setup@master
 
-      - name: Run Snyk OSS scan
+      - name: Run Snyk OSS scan (all modules)
         run: |
-          snyk test --all-projects --json | tee snyk-oss-results.json
+          snyk test --all-projects --detection-depth=4 --json | tee snyk-oss-results.json
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -27,7 +36,6 @@ jobs:
         run: |
           node <<'EOF'
           const fs = require('fs');
-          const path = require('path');
           const data = JSON.parse(fs.readFileSync('snyk-oss-results.json', 'utf8'));
           const severityRank = s => ({critical: 4, high: 3}[s] || 0);
           const severityIcons = { critical: '🔴', high: '🟠' };
@@ -46,7 +54,7 @@ jobs:
             pip: (name, version) => `https://security.snyk.io/package/pip/${name}/${version}`,
             npm: (name, version) => `https://security.snyk.io/package/npm/${name}/${version}`,
             maven: (name, version) => `https://security.snyk.io/package/maven/${name}/${version}`,
-            rubygems: (name, version) => '', // Advisor not supported
+            rubygems: () => '',
           };
 
           const projects = Array.isArray(data) ? data : [data];
@@ -55,7 +63,7 @@ jobs:
             const manifest = project.displayTargetFile || project.targetFile || project.projectName || 'unknown';
             for (const vuln of project.vulnerabilities || []) {
               if (!['critical', 'high'].includes(vuln.severity)) continue;
-              vuln.ecosystem = project.packageManager || 'pip';
+              vuln.ecosystem = project.packageManager || 'maven';
               manifestGroups[manifest] = manifestGroups[manifest] || [];
               manifestGroups[manifest].push(vuln);
             }
@@ -66,7 +74,6 @@ jobs:
 
           for (const file in manifestGroups) {
             const vulns = manifestGroups[file].sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
-
             const vulnMap = new Map();
             const criticalPackages = new Set();
             const highPackages = new Set();
@@ -82,7 +89,6 @@ jobs:
               entry.count++;
               entry.titles.add(v.title);
               totalOccurrences++;
-
               if (severity === 'critical') criticalPackages.add(key);
               if (severity === 'high') highPackages.add(key);
             }
@@ -101,14 +107,13 @@ jobs:
             output += `🔴 ${criticalCount} critical vulnerability occurrences across ${criticalPackages.size} unique packages\n`;
             output += `🟠 ${highCount} high vulnerability occurrences across ${highPackages.size} unique packages\n`;
             output += `**${totalUniquePackages} total affected packages (${totalOccurrences} total issues)**\n\n`;
-
             output += `| Severity | Package | Dependency Type | CVSS | Occurrences | Title | Fix Available | Advisor |\n`;
             output += `|----------|---------|------------------|------|-------------|-------|---------------|---------|\n`;
 
             for (const [key, { vuln, count, titles, severity }] of vulnMap.entries()) {
               const icon = severityIcons[severity] || '';
               const snykUrl = vuln.id ? `https://security.snyk.io/vuln/${vuln.id}` : '';
-              const ecosystem = vuln.ecosystem || 'pip';
+              const ecosystem = vuln.ecosystem || 'maven';
               const pkgBaseUrl = ecosystemUrls[ecosystem] || (name => '#');
               const advisorBaseUrl = advisorUrls[ecosystem] || (() => '');
 
