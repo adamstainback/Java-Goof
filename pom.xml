@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -22,6 +23,7 @@
         <module>todolist-web-common</module>
         <module>todolist-web-struts</module>
     </modules>
+
     <packaging>pom</packaging>
 
     <licenses>
@@ -78,36 +80,6 @@
                 </plugin>
             </plugins>
         </pluginManagement>
-    </build>
-         <build>
-           <plugins>
-             <plugin>
-               <groupId>io.snyk</groupId>
-               <artifactId>snyk-maven-plugin</artifactId>
-               <version>2.0.0</version>
-               <inherited>false</inherited>
-               <executions>
-                 <execution>
-                   <id>snyk-test</id>
-                   <goals>
-                     <goal>test</goal>
-                   </goals>
-                 </execution>
-                 <execution>
-                   <id>snyk-monitor</id>
-                   <goals>
-                     <goal>monitor</goal>
-                   </goals>
-                 </execution>
-               </executions>
-               <configuration>
-                 <apiToken>${env.SNYK_TOKEN}</apiToken>
-                 <args>
-                   <arg>--all-projects</arg>
-                 </args>
-               </configuration>
-             </plugin>
-           </plugins>
-         </build>
 
+    </build>
 </project>
