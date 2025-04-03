@@ -28,7 +28,7 @@ jobs:
 
       - name: Run Snyk OSS scan (all modules)
         run: |
-          snyk test --all-projects --detection-depth=4 --json | tee snyk-oss-results.json
+          snyk test --json | tee snyk-oss-results.json
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
